@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using testeAPI.Repository;
 
 namespace testeAPI.Controllers
 {
@@ -6,86 +7,75 @@ namespace testeAPI.Controllers
     [Route("[controller]")]
     public class ClienteController : ControllerBase
     {
-        private static readonly string[] nomes = new[]
-        {
-        "Renato", "Marcela", "Mariana", "Fernanda", "Rodrigo", "Ricardo", "João Carlos", "Viviane", "Victor"
-    };
-        private static readonly string[] cpfs = new[]
-        {
-        "32699877433", "65887799633", "57899968544", "22588465899", "33477851298", "85744695322", "54899632577", "55123659988", "32899564722"
-    };
+        public List<Cliente> ClientesList { get; set; }
 
-        private readonly ILogger<ClienteController> _logger;
+        public RepositoryCliente _repositoryCliente;
 
-        public List<Cliente> cadastros { get; set; }
-        public ClienteController(ILogger<ClienteController> logger)
+        public ClienteController(IConfiguration configuration)
         {
-            _logger = logger;
-            cadastros = Enumerable.Range(1, 5).Select(index => new Cliente
-            {
-                DataNascimento = DateTime.Now.AddDays(-Random.Shared.Next(6000, 20000)),
-                Cpf = cpfs[Random.Shared.Next(cpfs.Length)],
-                Nome = nomes[Random.Shared.Next(nomes.Length)]
-            })
-                .ToList();
+            ClientesList = new List<Cliente>();
+            _repositoryCliente = new RepositoryCliente(configuration);
         }
 
-        [HttpGet]
+        [HttpGet("/Cliente/{cpf}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<List<Cliente>> Consultar()
-        {
-            return Ok(cadastros);
-        }
-
-        [HttpGet("/cadastro/{index}/consultar")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<List<Cliente>> Consultar2(int index)
+        public ActionResult<Cliente> GetClientePorCPF(string cpf)
         {
-            if (index > cadastros.Count)
+            var cliente = _repositoryCliente.GetClientePorCPF(cpf);
+            if (cliente == null)
             {
                 return NotFound();
             }
-            return Ok(cadastros[index]);
+            return Ok(cliente);
         }
 
+        [HttpGet("/Cliente")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<List<Cliente>> GetClientes()
+        {
+            return Ok(_repositoryCliente.GetClientes());
+        }
 
-        [HttpPost("/cadastro/cadastrar")]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [Consumes("application/json")]
-        [Produces("application/json")]
-        public ActionResult <Cliente> Inserir([FromBody]Cliente cadastro)
+        public ActionResult<Cliente> PostCliente(Cliente cliente)
         {
-            cadastros.Add(cadastro);
-            return StatusCode(201, cadastro);
+            if (!_repositoryCliente.InsertCliente(cliente))
+            {
+                return BadRequest();
+            }
+
+            return CreatedAtAction(nameof(PostCliente), cliente);
         }
 
-        [HttpPut("/cadastro/{index}/atualizar")]
+        [HttpPut]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult Atualizar(int index, Cliente cadastro)
-        {
-            if(index >= cadastros.Count || index < 0)
-            {
-                return NotFound();
-            }
-            cadastros[index] = cadastro;
-            return Ok(cadastros[index]);
-        }
-
-
-        [HttpDelete("/cadastro/{index}/deletar")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public IActionResult Deletar(int index)
+        public IActionResult UpdateProduto(long id, Cliente cliente)
         {
-            if(index >= cadastros.Count || index < 0)
+            if (!_repositoryCliente.UpdateCliente(id, cliente))
             {
                 return NotFound();
             }
-            cadastros.RemoveAt(index);
             return NoContent();
         }
+
+        [HttpDelete]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<List<Cliente>> DeleteCliente(long id)
+        {
+            if (!_repositoryCliente.DeleteCliente(id))
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+         
     }
 }

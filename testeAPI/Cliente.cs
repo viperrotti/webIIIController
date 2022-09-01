@@ -4,12 +4,12 @@ namespace testeAPI
 {
     public class Cliente
     {
+        public long Id { get; set; }
+
         [Required(ErrorMessage = "Data é obrigatório")]
         public DateTime? DataNascimento { get; set; }
 
-
-
-        [StringLength(11, MinimumLength = 11, ErrorMessage = "CPF deve conter 11 dígitos")]
+        [StringLength(14, ErrorMessage = "CPF deve conter 11 números")]
         [Required(ErrorMessage = "CPF é obrigatório")]
         public string? Cpf { get; set; }
 
