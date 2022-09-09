@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace testeAPI
+namespace testeAPI.Core.Models
 {
     public class Cliente
     {

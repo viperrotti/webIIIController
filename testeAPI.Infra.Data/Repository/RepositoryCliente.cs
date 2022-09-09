@@ -1,9 +1,12 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using testeAPI.Core.Interface;
+using testeAPI.Core.Models;
 
-namespace testeAPI.Repository
+namespace testeAPI.Infra.Data.Repository
 {
-    public class RepositoryCliente
+    public class RepositoryCliente : IRepositoryCliente
     {
         private readonly IConfiguration _configuration;
 
@@ -32,6 +35,19 @@ namespace testeAPI.Repository
 
             return conn.QueryFirstOrDefault<Cliente>(query, parameters);
         }
+
+        public Cliente GetClientePorId(long id)
+        {
+            var query = "SELECT * FROM Clientes WHERE id = @id";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("id", id);
+
+            using var conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+
+            return conn.QueryFirstOrDefault<Cliente>(query, parameters);
+        }
+
 
         public bool InsertCliente(Cliente cliente)
         {

@@ -1,20 +1,24 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using testeAPI.Repository;
+using Microsoft.Data.SqlClient;
+using testeAPI.Core.Interface;
+using testeAPI.Core.Models;
+using testeAPI.Filters;
 
 namespace testeAPI.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [TypeFilter(typeof(LogResourceFilter))]
+
     public class ClienteController : ControllerBase
     {
-        public List<Cliente> ClientesList { get; set; }
+        public IClienteService _clienteService;
 
-        public RepositoryCliente _repositoryCliente;
-
-        public ClienteController(IConfiguration configuration)
+        public ClienteController(IClienteService clienteService)
         {
-            ClientesList = new List<Cliente>();
-            _repositoryCliente = new RepositoryCliente(configuration);
+            _clienteService = clienteService;
         }
 
         [HttpGet("/Cliente/{cpf}")]
@@ -23,7 +27,7 @@ namespace testeAPI.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<Cliente> GetClientePorCPF(string cpf)
         {
-            var cliente = _repositoryCliente.GetClientePorCPF(cpf);
+            var cliente = _clienteService.GetClientePorCPF(cpf);
             if (cliente == null)
             {
                 return NotFound();
@@ -35,15 +39,18 @@ namespace testeAPI.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<List<Cliente>> GetClientes()
         {
-            return Ok(_repositoryCliente.GetClientes());
+            return Ok(_clienteService.GetClientes());
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [TypeFilter(typeof(LogActionFilter))]
+        [ServiceFilter(typeof(VerificaCpfActionFilter))]
         public ActionResult<Cliente> PostCliente(Cliente cliente)
         {
-            if (!_repositoryCliente.InsertCliente(cliente))
+            if (!_clienteService.InsertCliente(cliente))
             {
                 return BadRequest();
             }
@@ -55,14 +62,19 @@ namespace testeAPI.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult UpdateProduto(long id, Cliente cliente)
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [TypeFilter(typeof(LogActionFilter))]
+        [ServiceFilter(typeof(VerificaRegistroActionFilter))]
+
+        public IActionResult UpdateCliente(long id, Cliente cliente)
         {
-            if (!_repositoryCliente.UpdateCliente(id, cliente))
+            if (!_clienteService.UpdateCliente(id, cliente))
             {
-                return NotFound();
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
             return NoContent();
         }
+
 
         [HttpDelete]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -70,7 +82,7 @@ namespace testeAPI.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<List<Cliente>> DeleteCliente(long id)
         {
-            if (!_repositoryCliente.DeleteCliente(id))
+            if (!_clienteService.DeleteCliente(id))
             {
                 return NotFound();
             }
